@@ -15,8 +15,9 @@
 
 
 from pymongo import MongoClient, ReturnDocument
+from config import MONGO_URL
 
-client = MongoClient()
+client = MongoClient(MONGO_URL)
 database = client.mafia_host_bot
 
 

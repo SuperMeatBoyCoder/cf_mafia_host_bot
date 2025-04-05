@@ -17,8 +17,6 @@
 import config
 from .database import database
 from . import lang
-from . import croco
-from . import gallows
 from .game import role_titles, stop_game
 from .stages import stages, go_to_next_stage, format_roles, get_votes
 from .bot import bot
@@ -172,67 +170,6 @@ def rating_command(message, *args, **kwargs):
         paragraphs.append('Рейтинг игроков в крокодила:\n' + get_rating_list(croco_rating))
 
     bot.send_message(message.chat.id, '\n\n'.join(paragraphs))
-
-
-@bot.group_message_handler(regexp=command_regexp('croco'))
-def play_croco(message, game, *args, **kwargs):
-    if game:
-        bot.send_message(message.chat.id, 'Игра в этом чате уже идёт.')
-        return
-    word = croco.get_word()[:-2]
-    id = str(uuid4())[:8]
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(
-        InlineKeyboardButton(
-            text='Получить слово',
-            callback_data=f'get_word {id}'
-        )
-    )
-    name = get_name(message.from_user)
-    database.games.insert_one({
-        'game': 'croco',
-        'id': id,
-        'player': message.from_user.id,
-        'name': name,
-        'full_name': get_full_name(message.from_user),
-        'word': word,
-        'chat': message.chat.id,
-        'time': time() + 60,
-        'stage': 0
-    })
-    bot.send_message(
-        message.chat.id,
-        f'Игра началась! {name.capitalize()}, у тебя есть две минуты, чтобы объяснить слово.',
-        reply_markup=keyboard
-    )
-
-
-@bot.group_message_handler(regexp=command_regexp('gallows'))
-def play_gallows(message, game, *args, **kwargs):
-    if game:
-        if game['game'] == 'gallows':
-            bot.send_message(message.chat.id, 'Игра в этом чате уже идёт.', reply_to_message_id=game['message_id'])
-        else:
-            bot.send_message(message.chat.id, 'Игра в этом чате уже идёт.')
-        return
-    word = croco.get_word()[:-2]
-    sent_message = bot.send_message(
-        message.chat.id,
-        lang.gallows.format(
-            result='', word=' '.join(['_'] * len(word)), attempts='', players=''
-        ) % gallows.stickman[0],
-        parse_mode='HTML'
-    )
-    database.games.insert_one({
-        'game': 'gallows',
-        'chat': message.chat.id,
-        'word': word,
-        'wrong': {},
-        'right': {},
-        'names': {},
-        'message_id': sent_message.message_id
-    })
-
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('get_word'))
 def get_word(call):
@@ -989,10 +926,6 @@ def game_suggestion(message, game, *args, **kwargs):
         return
     suggestion = message.text.lower().replace('ё', 'е')
     user = user_object(message.from_user)
-    if game['game'] == 'gallows':
-        return gallows.gallows_suggestion(suggestion, game, user, message.message_id)
-    elif game['game'] == 'croco':
-        return croco.croco_suggestion(suggestion, game, user, message.message_id)
 
 @bot.group_message_handler()
 def default_handler(message, *args, **kwargs):

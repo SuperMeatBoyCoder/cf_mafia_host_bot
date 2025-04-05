@@ -21,7 +21,6 @@ from .game import stop_game, role_titles
 from .stages import go_to_next_stage
 from .bot import bot
 
-import flask
 from time import time
 from threading import Thread
 from telebot.types import Update
@@ -71,62 +70,13 @@ def stage_cycle():
             game = go_to_next_stage(game)
 
 
-def croco_cycle():
-    while True:
-        curtime = time()
-        games = list(database.games.find({'game': 'croco', 'time': {'$lte': curtime}}))
-        for game in games:
-            if game['stage'] == 0:
-                database.games.update_one({'_id': game['_id']}, {'$set': {'stage': 1, 'time': curtime + 60}})
-                bot.try_to_send_message(game['chat'], f'{game["name"].capitalize()}, до конца игры осталась минута!')
-            else:
-                database.games.delete_one({'_id': game['_id']})
-                bot.try_to_send_message(game['chat'], f'Игра окончена! {game["name"].capitalize()} проигрывает, загаданное слово было {game["word"]}.')
-                database.stats.update_one(
-                    {'id': game['player'], 'chat': game['chat']},
-                    {'$set': {'name': game['full_name']}, '$inc': {'croco.total': 1}},
-                    upsert=True
-                )
-
-
 def start_thread(name=None, target=None, *args, daemon=True, **kwargs):
     thread = Thread(*args, name=name, target=target, daemon=daemon, **kwargs)
     logger.debug(f'Запускаю процесс <{thread.name}>')
     thread.start()
 
 
-def run_app():
-    app = flask.Flask(__name__)
-
-    @app.route('/' + config.TOKEN, methods=['POST'])
-    def webhook():
-        if flask.request.headers.get('content-type') == 'application/json':
-            json_string = flask.request.get_data().decode('utf-8')
-            update = Update.de_json(json_string)
-            log_update(update)
-            bot.process_new_updates([update])
-            return ''
-        else:
-            flask.abort(403)
-
-    app.run(
-        host=config.SERVER_IP,
-        port=config.SERVER_PORT,
-        ssl_context=(config.SSL_CERT, config.SSL_PRIV),
-        debug=False
-    )
-
-
 def main():
     start_thread('Stage Cycle', stage_cycle)
     start_thread('Removing Requests', remove_overtimed_requests)
-    start_thread('Crocodile Cycle', croco_cycle)
-
-    if config.SET_WEBHOOK:
-        url = f'https://{config.SERVER_IP}:{config.SERVER_PORT}/'
-        logger.debug(f'Запускаю приложение по адресу {url}')
-        run_app()
-        bot.remove_webhook()
-        bot.set_webhook(url=url + config.TOKEN)
-    else:
-        bot.polling()
+    bot.polling()

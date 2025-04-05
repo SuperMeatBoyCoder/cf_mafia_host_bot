@@ -52,5 +52,4 @@ def log_update(update):
         qc = c.l
     else:
         return
-
     logger.info(f'<{chat:>14}:{id:<9}> {qc}{repr(msg)[1:-1]}{c.e}')
