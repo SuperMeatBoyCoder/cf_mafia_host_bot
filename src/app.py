@@ -14,8 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import config
-from .logger import logger, log_update
+from .logger import logger
 from .database import database
 from .game import stop_game, role_titles
 from .stages import go_to_next_stage
@@ -23,7 +22,6 @@ from .bot import bot
 
 from time import time
 from threading import Thread
-from telebot.types import Update
 
 
 def remove_overtimed_requests():

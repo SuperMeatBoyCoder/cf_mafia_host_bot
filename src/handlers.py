@@ -919,14 +919,6 @@ def print_database(message, *args, **kwargs):
     print(list(database.games.find()))
     bot.send_message(message.chat.id, 'Все документы базы данных игр выведены в терминал!')
 
-
-@bot.group_message_handler(content_types=['text'])
-def game_suggestion(message, game, *args, **kwargs):
-    if not game or message.text is None:
-        return
-    suggestion = message.text.lower().replace('ё', 'е')
-    user = user_object(message.from_user)
-
 @bot.group_message_handler()
 def default_handler(message, *args, **kwargs):
     pass
